@@ -11,9 +11,9 @@ window.CONFIG = {
 
   // The projects to rank. `id` must be unique and should not change mid-round.
   projects: [
-    { id: "project-1", name: "Project One", description: "Short description of the first project." },
-    { id: "project-2", name: "Project Two", description: "Short description of the second project." },
-    { id: "project-3", name: "Project Three", description: "Short description of the third project." },
+    { id: "project-1", name: "Boston Higher Ground", description: "GIS map of the area" },
+    { id: "project-2", name: "Theatre@First", description: "Improvements, bug fixes, etc" },
+    { id: "project-3", name: "Food Link", description: "Mobile app, QR code for vans, HUGE project" },
   ],
 
   // Team sizes are computed automatically from the number of people who
