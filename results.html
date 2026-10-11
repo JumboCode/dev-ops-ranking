@@ -1,0 +1,72 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Team Assignments</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+<main>
+  <h1>Team assignments</h1>
+  <nav><a href="index.html">← Submit or change your ranking</a></nav>
+  <div id="warning" class="banner" hidden></div>
+  <p id="summary" class="muted">Loading…</p>
+  <div id="teams" class="teams"></div>
+
+  <h2>Submitted rankings</h2>
+  <div class="table-wrap"><table id="subs"></table></div>
+</main>
+
+<script src="config.js"></script>
+<script src="app.js"></script>
+<script>
+  const ordinal = (n) => {
+    const s = ["th", "st", "nd", "rd"], v = n % 100;
+    return n + (s[(v - 20) % 10] || s[v] || s[0]);
+  };
+  const projectName = (id) => (CONFIG.projects.find((p) => p.id === id) || { name: id }).name;
+
+  (async () => {
+    const summary = document.getElementById("summary");
+    let subs;
+    try {
+      subs = await api.list();
+    } catch (err) {
+      summary.textContent = `Could not load rankings: ${err.message}`;
+      return;
+    }
+
+    const { teams, people, warning } = computeAssignment(subs, CONFIG.projects, CONFIG.fixedTeamSizes);
+    if (warning) {
+      const w = document.getElementById("warning");
+      w.textContent = warning;
+      w.hidden = false;
+    }
+
+    const counts = {};
+    teams.forEach((t) => t.members.forEach((m) => { counts[m.choice] = (counts[m.choice] || 0) + 1; }));
+    summary.textContent = people.length === 0
+      ? "No rankings submitted yet."
+      : `${people.length} people ranked. ` +
+        Object.keys(counts).sort((a, b) => a - b).map((c) => `${counts[c]} got their ${ordinal(+c)} choice`).join(", ") + ".";
+
+    document.getElementById("teams").innerHTML = teams.map((t) => `
+      <div class="team">
+        <h2>${escapeHtml(t.project.name)}</h2>
+        <div class="muted">${t.members.length} member${t.members.length === 1 ? "" : "s"}</div>
+        <ul>${t.members.map((m) => `
+          <li><span>${escapeHtml(m.name)}</span><span class="choice">${ordinal(m.choice)} choice</span></li>`).join("")}
+        </ul>
+      </div>`).join("");
+
+    const rankHeaders = CONFIG.projects.map((_, i) => `<th>${ordinal(i + 1)}</th>`).join("");
+    document.getElementById("subs").innerHTML =
+      `<tr><th>Name</th>${rankHeaders}</tr>` +
+      people.map((s) => `<tr><td>${escapeHtml(s.name)}</td>${
+        CONFIG.projects.map((_, i) => `<td>${escapeHtml(s.ranking[i] ? projectName(s.ranking[i]) : "")}</td>`).join("")
+      }</tr>`).join("");
+  })();
+</script>
+</body>
+</html>

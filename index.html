@@ -1,0 +1,113 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>DevOps Project Ranking</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+<main>
+  <h1>Rank the projects</h1>
+  <nav><a href="results.html">See team assignments →</a></nav>
+  <div id="local-banner" class="banner" hidden>
+    Local test mode: no <code>apiUrl</code> is set in <code>config.js</code>, so rankings are only saved in this browser.
+  </div>
+
+  <form id="form">
+    <label for="name">Your name</label>
+    <input id="name" type="text" required autocomplete="name" placeholder="First Last">
+
+    <p class="muted">Drag the projects (or use the arrows) so your top choice is first.
+      Submitting again with the same name replaces your previous ranking.</p>
+    <ol id="list" class="rank-list"></ol>
+
+    <button class="primary" type="submit" id="submit">Submit ranking</button>
+    <div id="status"></div>
+  </form>
+</main>
+
+<script src="config.js"></script>
+<script src="app.js"></script>
+<script>
+  const list = document.getElementById("list");
+  const status = document.getElementById("status");
+  document.getElementById("local-banner").hidden = !api.isLocal();
+
+  for (const p of CONFIG.projects) {
+    const li = document.createElement("li");
+    li.draggable = true;
+    li.dataset.id = p.id;
+    li.innerHTML = `
+      <div class="rank-num"></div>
+      <div class="rank-body"><strong>${escapeHtml(p.name)}</strong><span>${escapeHtml(p.description || "")}</span></div>
+      <div class="move">
+        <button type="button" data-dir="-1" aria-label="Move up">▲</button>
+        <button type="button" data-dir="1" aria-label="Move down">▼</button>
+      </div>`;
+    list.appendChild(li);
+  }
+
+  function renumber() {
+    const items = [...list.children];
+    items.forEach((li, i) => {
+      li.querySelector(".rank-num").textContent = i + 1;
+      li.querySelector('[data-dir="-1"]').disabled = i === 0;
+      li.querySelector('[data-dir="1"]').disabled = i === items.length - 1;
+    });
+  }
+  renumber();
+
+  list.addEventListener("click", (e) => {
+    const btn = e.target.closest("button[data-dir]");
+    if (!btn) return;
+    const li = btn.closest("li");
+    if (btn.dataset.dir === "-1") list.insertBefore(li, li.previousElementSibling);
+    else list.insertBefore(li.nextElementSibling, li);
+    renumber();
+  });
+
+  let dragging = null;
+  list.addEventListener("dragstart", (e) => {
+    dragging = e.target.closest("li");
+    dragging.classList.add("dragging");
+    e.dataTransfer.effectAllowed = "move";
+    e.dataTransfer.setData("text/plain", dragging.dataset.id);
+  });
+  list.addEventListener("dragend", () => {
+    dragging.classList.remove("dragging");
+    dragging = null;
+    renumber();
+  });
+  list.addEventListener("dragover", (e) => {
+    e.preventDefault();
+    const over = e.target.closest("li");
+    if (!dragging || !over || over === dragging) return;
+    const rect = over.getBoundingClientRect();
+    const after = e.clientY > rect.top + rect.height / 2;
+    list.insertBefore(dragging, after ? over.nextSibling : over);
+  });
+
+  document.getElementById("form").addEventListener("submit", async (e) => {
+    e.preventDefault();
+    const name = document.getElementById("name").value.trim();
+    if (!name) return;
+    const ranking = [...list.children].map((li) => li.dataset.id);
+    const button = document.getElementById("submit");
+    button.disabled = true;
+    status.className = "";
+    status.textContent = "Submitting…";
+    try {
+      await api.submit(name, ranking);
+      status.className = "ok";
+      status.textContent = `Thanks, ${name}! Your ranking was saved.`;
+    } catch (err) {
+      status.className = "err";
+      status.textContent = `Could not save: ${err.message}`;
+    } finally {
+      button.disabled = false;
+    }
+  });
+</script>
+</body>
+</html>
