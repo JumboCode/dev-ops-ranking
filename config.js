@@ -7,7 +7,7 @@ window.CONFIG = {
 
   // Google Apps Script web app URL (see README). Leave empty to run in
   // local test mode, where rankings are saved only in your own browser.
-  apiUrl: "",
+  apiUrl: "https://script.google.com/macros/s/AKfycbwbcX96e2dgERNkhgb7szYLFQhO6QwFdO8TZJFQYcxpdyZAKVnNznmPOLBN4IsBtcBQ/exec",
 
   // The projects to rank. `id` must be unique and should not change mid-round.
   projects: [
